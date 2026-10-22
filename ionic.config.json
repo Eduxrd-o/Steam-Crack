@@ -1,0 +1,7 @@
+{
+  "name": "Steams-Crack",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
