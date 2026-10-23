@@ -1,21 +1,112 @@
 <ion-header [translucent]="true">
-   <div class="welcome-banner">
+  <div class="welcome-banner">
     <div class="banner-icon">
-      <img src="/assets/icon/steam.png" alt="" height="100px">
+      <img src="assets/icon/steam.svg" alt="Steam Crack Logo" (error)="$any($event.target).src='assets/steam/logo.png'">
     </div>
     <div class="banner-text">
-      <h2>Steam Crack </h2>
-      <p> Aquí encontrarás todo lo relacionado con juegos</p>
+      <h2>Steam Crack</h2>
+      <p>Aquí encontrarás las mejores ofertas y videojuegos de Steam</p>
     </div>
   </div>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="catalog-content">
+  <!-- Refrescador (Pull to refresh) -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Desliza para actualizar ofertas" refreshingSpinner="crescent" refreshingText="Actualizando...">
+    </ion-refresher-content>
+  </ion-refresher>
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+  <!-- Encabezado de sección -->
+  <div class="section-header">
+    <div class="header-info">
+      <h3>
+        <ion-icon name="flame" class="flame-icon"></ion-icon>
+        Catálogo en Tiempo Real
+      </h3>
+      <span class="game-counter" *ngIf="games.length > 0">
+        {{ games.length }} juegos cargados
+      </span>
+    </div>
+  </div>
+
+  <!-- Estado de Carga Inicial -->
+  <div class="loading-state" *ngIf="isLoading && games.length === 0">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Cargando ofertas remotas...</p>
+  </div>
+
+  <!-- Estado de Error -->
+  <div class="error-state" *ngIf="errorMessage && games.length === 0">
+    <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
+    <h4>Error de conexión</h4>
+    <p>{{ errorMessage }}</p>
+    <ion-button fill="outline" color="light" (click)="loadInitialGames()">
+      <ion-icon name="reload-outline" slot="start"></ion-icon>
+      Reintentar
+    </ion-button>
+  </div>
+
+  <!-- Listado de Tarjetas con Información Real (Al menos 2 atributos por elemento) -->
+  <div class="games-grid" *ngIf="games.length > 0">
+    <ion-card *ngFor="let game of games; trackBy: trackByDealId" class="game-card">
+      <div class="image-wrapper">
+        <img [src]="game.thumb" [alt]="game.title" class="game-thumb" loading="lazy" />
+        <ion-badge *ngIf="+game.savings > 0" color="success" class="discount-badge">
+          <ion-icon name="trending-down-outline"></ion-icon>
+          -{{ game.savings | number:'1.0-0' }}%
+        </ion-badge>
+      </div>
+
+      <ion-card-header>
+        <ion-card-title class="game-title">{{ game.title }}</ion-card-title>
+        <ion-card-subtitle class="game-attributes-row">
+          <!-- Atributo 1: Valoración de Steam con texto descriptivo -->
+          <ion-chip [color]="getRatingBadgeColor(game.steamRatingText)" class="attr-chip" outline="true">
+            <ion-icon name="star"></ion-icon>
+            <ion-label>{{ game.steamRatingText || 'Sin calificar' }}</ion-label>
+          </ion-chip>
+
+          <!-- Atributo 2: Metacritic Score si está disponible -->
+          <ion-chip *ngIf="game.metacriticScore && game.metacriticScore !== '0'" color="tertiary" class="attr-chip">
+            <ion-icon name="sparkles-outline"></ion-icon>
+            <ion-label>Metacritic: {{ game.metacriticScore }}/100</ion-label>
+          </ion-chip>
+        </ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <!-- Atributos adicionales: Precios (Normal y Oferta) -->
+        <div class="pricing-container">
+          <div class="price-box">
+            <span class="normal-price" *ngIf="+game.normalPrice > +game.salePrice">
+              ${{ game.normalPrice }}
+            </span>
+            <span class="sale-price">
+              ${{ game.salePrice === '0.00' ? 'GRATIS' : game.salePrice }}
+            </span>
+          </div>
+
+          <ion-badge *ngIf="game.steamRatingPercent && game.steamRatingPercent !== '0'" color="medium" class="rating-percent-badge">
+            <ion-icon name="logo-steam"></ion-icon>
+            {{ game.steamRatingPercent }}% Positivas
+          </ion-badge>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!--Infinite Scrolling (ion-infinite-scroll) -->
+  <ion-infinite-scroll [disabled]="!hasMore" (ionInfinite)="loadMoreGames($event)" threshold="150px">
+    <ion-infinite-scroll-content
+      loadingSpinner="crescent"
+      loadingText="Cargando más ofertas de Steam...">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+
+  <!-- Fin de catálogo al agotarse los elementos -->
+  <div class="end-of-catalog" *ngIf="!hasMore && games.length > 0">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <p>Has llegado al final de las ofertas disponibles.</p>
+  </div>
 </ion-content>
